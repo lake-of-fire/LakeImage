@@ -44,13 +44,13 @@ public struct LakeImage: View {
                     .frame(maxWidth: maxWidth, minHeight: minHeight, maxHeight: maxHeight)
             } else if state.error != nil {
                 Color.clear
-//                Color.gray // Indicates an error
-//                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                //                Color.gray // Indicates an error
+                //                    .clipShape(RoundedRectangle(cornerRadius: 4))
             } else {
                 Color.gray
                     .opacity(0.7)
                     .frame(minHeight: minHeight)
-//                    .brightness(0.1)
+                //                    .brightness(0.1)
             }
         }
         .priority(.high)
@@ -64,4 +64,4 @@ public struct LakeImage: View {
         self.minHeight = minHeight
         self.maxHeight = maxHeight
     }
-  }
+}
