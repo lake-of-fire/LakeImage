@@ -1,6 +1,6 @@
 import SwiftUI
-import WebURL
-import WebURLFoundationExtras
+//import WebURL
+//import WebURLFoundationExtras
 import Nuke
 import NukeUI
 
@@ -22,46 +22,53 @@ import NukeUI
 
 public struct LakeImage: View {
     let url: URL
+    let contentMode: ContentMode
     var maxWidth: CGFloat? = nil
     var minHeight: CGFloat? = nil
     var maxHeight: CGFloat? = nil
+    var cornerRadius: CGFloat? = nil
     
     private var cleanURL: URL {
-        if let webURL = WebURL(url), let url = URL(webURL) {
-            return url
-        }
+//        if let webURL = WebURL(url), let url = URL(webURL) {
+//            return url
+//        }
         return url
     }
     
-    private let imagePipeline = ImagePipeline(configuration: .withDataCache)
+    private static var imagePipeline = ImagePipeline(configuration: .withDataCache)
     
     public var body: some View {
         LazyImage(url: cleanURL) { state in
             if let image = state.image {
                 image
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(maxWidth: maxWidth, minHeight: minHeight, maxHeight: maxHeight)
-            } else if state.error != nil {
-                Color.clear
-                //                Color.gray // Indicates an error
-                //                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .aspectRatio(contentMode: contentMode)
+                    .frame(maxWidth: maxWidth, minHeight: minHeight, maxHeight: maxHeight, alignment: .bottom)
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius ?? 0))
+
             } else {
-                Color.gray
-                    .opacity(0.7)
-                    .frame(minHeight: minHeight)
-                //                    .brightness(0.1)
+                if state.error != nil {
+                    Color.clear
+                    //                Color.gray // Indicates an error
+                } else {
+                    Color.gray
+                        .opacity(0.7)
+                        .frame(minHeight: minHeight)
+                    //                    .brightness(0.1)
+                }
             }
         }
         .priority(.high)
-        .pipeline(imagePipeline)
+        .pipeline(Self.imagePipeline)
         .frame(maxWidth: maxWidth, maxHeight: maxHeight)
     }
     
-    public init(_ url: URL, maxWidth: CGFloat? = nil, minHeight: CGFloat? = nil, maxHeight: CGFloat? = nil) {
+    public init(_ url: URL, contentMode: ContentMode = .fill, maxWidth: CGFloat? = nil, minHeight: CGFloat? = nil, maxHeight: CGFloat? = nil, cornerRadius: CGFloat? = nil) {
         self.url = url
+        self.contentMode = contentMode
         self.maxWidth = maxWidth
         self.minHeight = minHeight
         self.maxHeight = maxHeight
+        self.cornerRadius = cornerRadius
     }
 }
