@@ -28,24 +28,16 @@ public struct LakeImage: View {
     var maxHeight: CGFloat? = nil
     var cornerRadius: CGFloat? = nil
     
-    private var cleanURL: URL {
-//        if let webURL = WebURL(url), let url = URL(webURL) {
-//            return url
-//        }
-        return url
-    }
-    
-    private static var imagePipeline = ImagePipeline(configuration: .withDataCache)
+    @State private static var imagePipeline = ImagePipeline(configuration: .withDataCache)
     
     public var body: some View {
-        LazyImage(url: cleanURL) { state in
+        LazyImage(url: url) { state in
             if let image = state.image {
                 image
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
                     .frame(maxWidth: maxWidth, minHeight: minHeight, maxHeight: maxHeight, alignment: .bottom)
                     .clipShape(RoundedRectangle(cornerRadius: cornerRadius ?? 0))
-
             } else {
                 if state.error != nil {
                     Color.clear

@@ -13,7 +13,6 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/kean/Nuke.git", branch: "main"),
-        .package(url: "https://github.com/lake-of-fire/swift-url.git", branch: "main"),
     ],
     targets: [
         .target(
@@ -21,8 +20,6 @@ let package = Package(
             dependencies: [
                 .product(name: "Nuke", package: "Nuke"),
                 .product(name: "NukeUI", package: "Nuke"),
-                .product(name: "WebURL", package: "swift-url"),
-                .product(name: "WebURLFoundationExtras", package: "swift-url"),
             ]),
 //        .testTarget(
 //            name: "LakeImageTests",
