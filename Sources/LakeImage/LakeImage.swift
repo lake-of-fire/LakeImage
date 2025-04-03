@@ -45,14 +45,18 @@ class CustomDataLoader: DataLoading {
             return task
         }
         
-        if let data = try? interceptor?(url) {
-            if let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil) {
-                didReceiveData(data, response)
-                completion(nil)
-            } else {
-                completion(NSError(domain: "CustomDataLoader", code: 0, userInfo: nil))
+        do {
+            if let data = try interceptor?(url) {
+                if let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil) {
+                    didReceiveData(data, response)
+                    completion(nil)
+                } else {
+                    completion(NSError(domain: "CustomDataLoader", code: 0, userInfo: nil))
+                }
+                return task
             }
-            return task
+        } catch {
+            debugPrint("Error loading image URL:", url, error)
         }
         
         return defaultDataLoader.loadData(
