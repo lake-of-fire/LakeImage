@@ -21,58 +21,47 @@ import NukeUI
 //    return r
 //}
 
-fileprivate final class LoadTask: Nuke.Cancellable {
-    func cancel() {}
-}
-
-class CustomDataLoader: DataLoading {
-    private let defaultDataLoader: DataLoading = DataLoader()
-    private let interceptor: ((URL) throws -> Data?)?
+final class CustomDataLoader: DataLoading, @unchecked Sendable {
+    private let defaultDataLoader: any DataLoading = DataLoader()
+    private let interceptor: (@Sendable (URL) throws -> Data?)?
     
-    init(interceptor: ((URL) throws -> Data?)? = nil) {
+    init(interceptor: (@Sendable (URL) throws -> Data?)? = nil) {
         self.interceptor = interceptor
     }
     
-    func loadData(
-        with request: URLRequest,
-        didReceiveData: @escaping (Data, URLResponse) -> Void,
-        completion: @escaping (Error?) -> Void
-    ) -> any Nuke.Cancellable {
-        let task = LoadTask()
-        
+    func loadData(with request: URLRequest) async throws -> (AsyncThrowingStream<Data, Error>, URLResponse) {
         guard let url = request.url else {
-            completion(NSError(domain: "CustomDataLoader", code: 0, userInfo: nil))
-            return task
+            throw NSError(domain: "CustomDataLoader", code: 0, userInfo: nil)
         }
         
         do {
             if let data = try interceptor?(url) {
                 if let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil) {
-                    didReceiveData(data, response)
-                    completion(nil)
+                    let stream = AsyncThrowingStream<Data, Error> { continuation in
+                        continuation.yield(data)
+                        continuation.finish()
+                    }
+                    return (stream, response)
                 } else {
-                    completion(NSError(domain: "CustomDataLoader", code: 0, userInfo: nil))
+                    throw NSError(domain: "CustomDataLoader", code: 0, userInfo: nil)
                 }
-                return task
             }
         } catch {
             debugPrint("Error loading image URL:", url, error)
         }
         
-        return defaultDataLoader.loadData(
-            with: request,
-            didReceiveData: didReceiveData,
-            completion: completion
-        )
+        return try await defaultDataLoader.loadData(with: request)
     }
 }
 
 public class CustomImageProvider {
     let imagePipeline: ImagePipeline
     
-    public init(interceptor: ((URL) throws -> Data?)? = nil) {
-        var config = ImagePipeline.Configuration.withDataCache
-        config.dataLoader = CustomDataLoader(interceptor: interceptor)
+    public init(interceptor: (@Sendable (URL) throws -> Data?)? = nil) {
+        let cachedConfig = ImagePipeline.Configuration.withDataCache
+        var config = ImagePipeline.Configuration(dataLoader: CustomDataLoader(interceptor: interceptor))
+        config.dataCache = cachedConfig.dataCache
+        config.imageCache = cachedConfig.imageCache
         imagePipeline = ImagePipeline(configuration: config)
     }
     
@@ -120,7 +109,7 @@ public struct LakeImage: View {
         minHeight: CGFloat? = nil,
         maxHeight: CGFloat? = nil,
         cornerRadius: CGFloat? = nil,
-        imageProvider: ((URL) throws -> Data?)? = nil
+        imageProvider: (@Sendable (URL) throws -> Data?)? = nil
     ) {
         self.url = url
         self.contentMode = contentMode
