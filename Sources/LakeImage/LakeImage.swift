@@ -59,7 +59,8 @@ public class CustomImageProvider {
     
     public init(interceptor: (@Sendable (URL) throws -> Data?)? = nil) {
         let cachedConfig = ImagePipeline.Configuration.withDataCache
-        var config = ImagePipeline.Configuration(dataLoader: CustomDataLoader(interceptor: interceptor))
+        var config = ImagePipeline.Configuration()
+        config.dataLoader = CustomDataLoader(interceptor: interceptor)
         config.dataCache = cachedConfig.dataCache
         config.imageCache = cachedConfig.imageCache
         imagePipeline = ImagePipeline(configuration: config)
