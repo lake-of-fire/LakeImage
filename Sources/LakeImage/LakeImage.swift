@@ -21,6 +21,10 @@ import NukeUI
 //    return r
 //}
 
+fileprivate final class LoadTask: Nuke.Cancellable {
+    func cancel() {}
+}
+
 final class CustomDataLoader: DataLoading, @unchecked Sendable {
     private let defaultDataLoader: any DataLoading = DataLoader()
     private let interceptor: (@Sendable (URL) throws -> Data?)?
@@ -29,28 +33,37 @@ final class CustomDataLoader: DataLoading, @unchecked Sendable {
         self.interceptor = interceptor
     }
     
-    func loadData(with request: URLRequest) async throws -> (AsyncThrowingStream<Data, Error>, URLResponse) {
+    func loadData(
+        with request: URLRequest,
+        didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+        completion: @escaping @Sendable (Error?) -> Void
+    ) -> any Nuke.Cancellable {
+        let task = LoadTask()
+
         guard let url = request.url else {
-            throw NSError(domain: "CustomDataLoader", code: 0, userInfo: nil)
+            completion(NSError(domain: "CustomDataLoader", code: 0, userInfo: nil))
+            return task
         }
         
         do {
             if let data = try interceptor?(url) {
                 if let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil) {
-                    let stream = AsyncThrowingStream<Data, Error> { continuation in
-                        continuation.yield(data)
-                        continuation.finish()
-                    }
-                    return (stream, response)
+                    didReceiveData(data, response)
+                    completion(nil)
                 } else {
-                    throw NSError(domain: "CustomDataLoader", code: 0, userInfo: nil)
+                    completion(NSError(domain: "CustomDataLoader", code: 0, userInfo: nil))
                 }
+                return task
             }
         } catch {
             debugPrint("Error loading image URL:", url, error)
         }
         
-        return try await defaultDataLoader.loadData(with: request)
+        return defaultDataLoader.loadData(
+            with: request,
+            didReceiveData: didReceiveData,
+            completion: completion
+        )
     }
 }
 
