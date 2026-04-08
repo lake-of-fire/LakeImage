@@ -5,7 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "LakeImage",
-    platforms: [.macOS(.v12), .iOS(.v15)],
+    platforms: [.macOS("15.0"), .iOS(.v15)],
     products: [
         .library(
             name: "LakeImage",
