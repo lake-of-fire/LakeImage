@@ -44,7 +44,7 @@ final class CustomDataLoader: DataLoading, @unchecked Sendable {
             completion(NSError(domain: "CustomDataLoader", code: 0, userInfo: nil))
             return task
         }
-        
+
         do {
             if let data = try interceptor?(url) {
                 if let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil) {
@@ -58,7 +58,7 @@ final class CustomDataLoader: DataLoading, @unchecked Sendable {
         } catch {
             debugPrint("Error loading image URL:", url, error)
         }
-        
+
         return defaultDataLoader.loadData(
             with: request,
             didReceiveData: didReceiveData,
