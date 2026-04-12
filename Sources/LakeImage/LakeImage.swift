@@ -37,7 +37,7 @@ final class CustomDataLoader: DataLoading, @unchecked Sendable {
         with request: URLRequest,
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Error?) -> Void
-    ) -> any Nuke.Cancellable {
+    ) -> any Cancellable {
         let task = LoadTask()
 
         guard let url = request.url else {
