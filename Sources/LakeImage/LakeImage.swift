@@ -26,7 +26,7 @@ fileprivate final class LoadTask: Nuke.Cancellable {
 }
 
 final class CustomDataLoader: DataLoading, @unchecked Sendable {
-    private let defaultDataLoader: any DataLoading = DataLoader()
+    private static let defaultDataLoader: any DataLoading = DataLoader()
     private let interceptor: (@Sendable (URL) throws -> Data?)?
     
     init(interceptor: (@Sendable (URL) throws -> Data?)? = nil) {
@@ -59,7 +59,7 @@ final class CustomDataLoader: DataLoading, @unchecked Sendable {
             debugPrint("Error loading image URL:", url, error)
         }
 
-        return defaultDataLoader.loadData(
+        return Self.defaultDataLoader.loadData(
             with: request,
             didReceiveData: didReceiveData,
             completion: completion
@@ -68,14 +68,13 @@ final class CustomDataLoader: DataLoading, @unchecked Sendable {
 }
 
 public class CustomImageProvider {
+    private static let sharedDataCache: (any DataCaching)? = try? DataCache(name: "com.github.kean.Nuke.DataCache")
+
     let imagePipeline: ImagePipeline
     
     public init(interceptor: (@Sendable (URL) throws -> Data?)? = nil) {
-        let cachedConfig = ImagePipeline.Configuration.withDataCache
-        var config = ImagePipeline.Configuration()
-        config.dataLoader = CustomDataLoader(interceptor: interceptor)
-        config.dataCache = cachedConfig.dataCache
-        config.imageCache = cachedConfig.imageCache
+        var config = ImagePipeline.Configuration(dataLoader: CustomDataLoader(interceptor: interceptor))
+        config.dataCache = Self.sharedDataCache
         imagePipeline = ImagePipeline(configuration: config)
     }
     
@@ -136,5 +135,23 @@ public struct LakeImage: View {
         } else {
             self.imageProvider = CustomImageProvider.defaultProvider
         }
+    }
+
+    public init(
+        _ url: URL,
+        contentMode: ContentMode = .fill,
+        maxWidth: CGFloat? = nil,
+        minHeight: CGFloat? = nil,
+        maxHeight: CGFloat? = nil,
+        cornerRadius: CGFloat? = nil,
+        imageProvider: CustomImageProvider
+    ) {
+        self.url = url
+        self.contentMode = contentMode
+        self.maxWidth = maxWidth
+        self.minHeight = minHeight
+        self.maxHeight = maxHeight
+        self.cornerRadius = cornerRadius
+        self.imageProvider = imageProvider
     }
 }
