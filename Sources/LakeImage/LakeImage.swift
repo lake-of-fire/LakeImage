@@ -110,7 +110,10 @@ public struct LakeImage: View {
                 }
             }
         }
-        .priority(.high)
+        // Nuke decompresses subscribed images on its background decompression queue.
+        // Keep reader/UI images at normal priority so they do not preempt content load.
+        .priority(.normal)
+        .onDisappear(.cancel)
         .pipeline(imageProvider.imagePipeline)
         .frame(maxWidth: maxWidth, maxHeight: maxHeight)
     }
