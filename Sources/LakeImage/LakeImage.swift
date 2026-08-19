@@ -84,14 +84,25 @@ public class CustomImageProvider {
 public struct LakeImage: View {
     let url: URL
     let contentMode: ContentMode
+    /// An opt-in decode target measured in display points. When present, Nuke
+    /// uses ImageIO thumbnail decoding instead of decoding the full-size image.
+    let thumbnailSize: CGSize?
     let maxWidth: CGFloat?
     let minHeight: CGFloat?
     let maxHeight: CGFloat?
     let cornerRadius: CGFloat?
     let imageProvider: CustomImageProvider
+
+    private var imageRequest: ImageRequest {
+        makeLakeImageRequest(
+            url: url,
+            contentMode: contentMode,
+            thumbnailSize: thumbnailSize
+        )
+    }
     
     public var body: some View {
-        LazyImage(url: url) { state in
+        LazyImage(request: imageRequest) { state in
             if let image = state.image {
                 image
                     .resizable()
@@ -121,6 +132,8 @@ public struct LakeImage: View {
     public init(
         _ url: URL,
         contentMode: ContentMode = .fill,
+        /// An opt-in decode target measured in display points.
+        thumbnailSize: CGSize? = nil,
         maxWidth: CGFloat? = nil,
         minHeight: CGFloat? = nil,
         maxHeight: CGFloat? = nil,
@@ -129,6 +142,7 @@ public struct LakeImage: View {
     ) {
         self.url = url
         self.contentMode = contentMode
+        self.thumbnailSize = thumbnailSize
         self.maxWidth = maxWidth
         self.minHeight = minHeight
         self.maxHeight = maxHeight
@@ -143,6 +157,8 @@ public struct LakeImage: View {
     public init(
         _ url: URL,
         contentMode: ContentMode = .fill,
+        /// An opt-in decode target measured in display points.
+        thumbnailSize: CGSize? = nil,
         maxWidth: CGFloat? = nil,
         minHeight: CGFloat? = nil,
         maxHeight: CGFloat? = nil,
@@ -151,10 +167,42 @@ public struct LakeImage: View {
     ) {
         self.url = url
         self.contentMode = contentMode
+        self.thumbnailSize = thumbnailSize
         self.maxWidth = maxWidth
         self.minHeight = minHeight
         self.maxHeight = maxHeight
         self.cornerRadius = cornerRadius
         self.imageProvider = imageProvider
     }
+}
+
+func makeLakeImageRequest(
+    url: URL,
+    contentMode: ContentMode,
+    thumbnailSize: CGSize?
+) -> ImageRequest {
+    var request = ImageRequest(url: url)
+    guard let thumbnailSize,
+          thumbnailSize.width.isFinite,
+          thumbnailSize.height.isFinite,
+          thumbnailSize.width > 0,
+          thumbnailSize.height > 0 else {
+        return request
+    }
+
+    let thumbnailContentMode: ImageProcessingOptions.ContentMode
+    switch contentMode {
+    case .fit:
+        thumbnailContentMode = .aspectFit
+    case .fill:
+        thumbnailContentMode = .aspectFill
+    @unknown default:
+        thumbnailContentMode = .aspectFill
+    }
+    request.thumbnail = ImageRequest.ThumbnailOptions(
+        size: thumbnailSize,
+        unit: .points,
+        contentMode: thumbnailContentMode
+    )
+    return request
 }
