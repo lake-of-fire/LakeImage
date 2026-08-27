@@ -11,17 +11,20 @@ final class LakeImageTests: XCTestCase {
         let original = makeLakeImageRequest(
             url: url,
             contentMode: .fill,
-            thumbnailSize: nil
+            thumbnailSize: nil,
+            displayScale: 2
         )
         let small = makeLakeImageRequest(
             url: url,
             contentMode: .fill,
-            thumbnailSize: CGSize(width: 48, height: 48)
+            thumbnailSize: CGSize(width: 48, height: 48),
+            displayScale: 2
         )
         let large = makeLakeImageRequest(
             url: url,
             contentMode: .fill,
-            thumbnailSize: CGSize(width: 144, height: 144)
+            thumbnailSize: CGSize(width: 144, height: 144),
+            displayScale: 2
         )
 
         XCTAssertNil(original.thumbnail)
@@ -41,19 +44,70 @@ final class LakeImageTests: XCTestCase {
             let request = makeLakeImageRequest(
                 url: url,
                 contentMode: .fit,
-                thumbnailSize: size
+                thumbnailSize: size,
+                displayScale: 2
             )
             XCTAssertNil(request.thumbnail)
         }
+
+        let invalidScale = makeLakeImageRequest(
+            url: url,
+            contentMode: .fit,
+            thumbnailSize: CGSize(width: 48, height: 48),
+            displayScale: 0
+        )
+        XCTAssertNil(invalidScale.thumbnail)
+
+        let overflowingPixelSize = makeLakeImageRequest(
+            url: url,
+            contentMode: .fit,
+            thumbnailSize: CGSize(
+                width: CGFloat.greatestFiniteMagnitude,
+                height: 48
+            ),
+            displayScale: 2
+        )
+        XCTAssertNil(overflowingPixelSize.thumbnail)
     }
 
     func testFitAndFillThumbnailRequestsHaveDistinctCacheIdentity() {
         let url = URL(string: "https://example.com/cover.jpg")!
         let size = CGSize(width: 80, height: 120)
-        let fit = makeLakeImageRequest(url: url, contentMode: .fit, thumbnailSize: size)
-        let fill = makeLakeImageRequest(url: url, contentMode: .fill, thumbnailSize: size)
+        let fit = makeLakeImageRequest(
+            url: url,
+            contentMode: .fit,
+            thumbnailSize: size,
+            displayScale: 2
+        )
+        let fill = makeLakeImageRequest(
+            url: url,
+            contentMode: .fill,
+            thumbnailSize: size,
+            displayScale: 2
+        )
 
         XCTAssertNotEqual(ImageCacheKey(request: fit), ImageCacheKey(request: fill))
+    }
+
+    func testThumbnailRequestConvertsDisplayPointsToExplicitPixels() {
+        let url = URL(string: "https://example.com/cover.jpg")!
+        let request = makeLakeImageRequest(
+            url: url,
+            contentMode: .fit,
+            thumbnailSize: CGSize(width: 80, height: 120),
+            displayScale: 2
+        )
+        var expected = ImageRequest(url: url)
+        expected.thumbnail = ImageRequest.ThumbnailOptions(
+            size: CGSize(width: 160, height: 240),
+            unit: .pixels,
+            contentMode: .aspectFit
+        )
+
+        XCTAssertEqual(
+            ImageCacheKey(request: request),
+            ImageCacheKey(request: expected)
+        )
     }
 
 #if canImport(AppKit)
@@ -80,7 +134,8 @@ final class LakeImageTests: XCTestCase {
         let request = makeLakeImageRequest(
             url: url,
             contentMode: .fit,
-            thumbnailSize: CGSize(width: 40, height: 40)
+            thumbnailSize: CGSize(width: 40, height: 40),
+            displayScale: 1
         )
 
         let image = try await provider.imagePipeline.image(for: request)

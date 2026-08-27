@@ -82,6 +82,8 @@ public class CustomImageProvider {
 }
 
 public struct LakeImage: View {
+    @Environment(\.displayScale) private var displayScale
+
     let url: URL
     let contentMode: ContentMode
     /// An opt-in decode target measured in display points. When present, Nuke
@@ -97,7 +99,8 @@ public struct LakeImage: View {
         makeLakeImageRequest(
             url: url,
             contentMode: contentMode,
-            thumbnailSize: thumbnailSize
+            thumbnailSize: thumbnailSize,
+            displayScale: displayScale
         )
     }
     
@@ -179,14 +182,17 @@ public struct LakeImage: View {
 func makeLakeImageRequest(
     url: URL,
     contentMode: ContentMode,
-    thumbnailSize: CGSize?
+    thumbnailSize: CGSize?,
+    displayScale: CGFloat
 ) -> ImageRequest {
     var request = ImageRequest(url: url)
     guard let thumbnailSize,
           thumbnailSize.width.isFinite,
           thumbnailSize.height.isFinite,
           thumbnailSize.width > 0,
-          thumbnailSize.height > 0 else {
+          thumbnailSize.height > 0,
+          displayScale.isFinite,
+          displayScale > 0 else {
         return request
     }
 
@@ -199,9 +205,17 @@ func makeLakeImageRequest(
     @unknown default:
         thumbnailContentMode = .aspectFill
     }
+    let thumbnailPixelSize = CGSize(
+        width: thumbnailSize.width * displayScale,
+        height: thumbnailSize.height * displayScale
+    )
+    guard thumbnailPixelSize.width.isFinite,
+          thumbnailPixelSize.height.isFinite else {
+        return request
+    }
     request.thumbnail = ImageRequest.ThumbnailOptions(
-        size: thumbnailSize,
-        unit: .points,
+        size: thumbnailPixelSize,
+        unit: .pixels,
         contentMode: thumbnailContentMode
     )
     return request
