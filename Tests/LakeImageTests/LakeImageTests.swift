@@ -1,7 +1,7 @@
 import XCTest
 import Nuke
 @testable import LakeImage
-#if canImport(AppKit)
+#if os(macOS) && canImport(AppKit)
 import AppKit
 #endif
 
@@ -110,7 +110,7 @@ final class LakeImageTests: XCTestCase {
         )
     }
 
-#if canImport(AppKit)
+#if os(macOS) && canImport(AppKit)
     func testThumbnailRequestDownsamplesDuringDecode() async throws {
         let sourceWidth = 1_200
         let sourceHeight = 600
